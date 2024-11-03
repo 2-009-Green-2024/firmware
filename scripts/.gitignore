@@ -1,0 +1,7 @@
+# ignore IDE stuff
+.idea/
+bin/
+lib/
+
+pyvenv.cfg
+*.txt
