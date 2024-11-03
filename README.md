@@ -18,6 +18,10 @@ You may need to install xcode or the xcode developer tools so you can compile yo
 ::::::::
 
 Besides that, you should be able to get started with trying out your own code, stuff you find online, or the code inside of File -> Examples -> Examples for Teensy 4.0
+# Dealing with Teensy Audio
+In general, if you're confused about how something works inside of the teensy audio code from `UltrasonicHearing.ino`, you can probably find some documentation for it inside of the Teensy Audio System Design Tool: https://www.pjrc.com/teensy/gui/?info=AudioPlayMemory
+
+If not, also consult the Audio section of the Teensy 4.0 Example Sketches inside of the Arduino IDE. If it's really cooked, look inside of the github repositories for Adafruit https://github.com/adafruit or start ctrl+click'ing around different function definitions to try and understand how the smaller components work. 
 # Generating Sound Files Using wav2sketch
 If you would like to add a sound file corresponding to messages that the BC transducer should play, you can generate them using `wav2sketch`. It takes a few steps in order to go from a .wav file to something we can play on the teensy, but it's not too laborious.
 
