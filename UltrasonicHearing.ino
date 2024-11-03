@@ -63,10 +63,18 @@ AudioRecordQueue         queue;
 WavFileWriter            wavWriter(queue);
 AudioPlayMemory playMem; 
 
-int current_waveform=0;
-AudioConnection patchCord1(playMem, 0, audioOutput, 0); // thru hydro - 1, thru bone conduction - 0 for audioOut
-// AudioConnection patchCord1(waveform1, 0, audioOutput, 1);
+AudioAnalyzeRMS rms_L;
+AudioAnalyzeRMS  rms_R;
 
+int current_waveform=0;
+//AudioConnection patchCord1(playMem, 0, audioOutput, 0); // thru hydro - 1, thru bone conduction - 0 for audioOut
+// AudioConnection patchCord1(waveform1, 0, audioOutput, 1);
+AudioConnection patchCord1(audioInput, 0, printer, 0); //for output: hydro - 0, bone conduction - 1  
+// AudioConnection patchCord1(audioInput, 0, rms_L, 0); //for output: hydro - 0, bone conduction - 1  
+// AudioConnection patchCord(audioInput, 0, rms_R, 1); //for output: hydro - 0, bone conduction - 1  
+int dOUT;
+int16_t* destination; 
+// pinMode(dOUT, OUTPUT);
 
 // const int16_t myWaveform[256] = {
 //      0,  1895,  3748,  5545,  7278,  8934, 10506, 11984, 13362, 14634,
@@ -147,20 +155,20 @@ void printPerformanceData();
 void setup() {
     //wavWriter.open("start.wav", sampleRate, 1);
     delay(1000);
-
     Serial.begin(9600);
     AudioMemory(500);
     audioShield.enable();
     audioShield.inputSelect(micInput);
-    audioShield.micGain(30);  //0-63
+    audioShield.micGain(60);  //0-63
     audioShield.volume(1);  //0-1
 
+    queue.begin(); 
     setI2SFreq(sampleRate);
     Serial.printf("Running at samplerate: %d\n", sampleRate);
 
     fft.setHighPassCutoff(20000.f);
     // pinMode(17, OUTPUT); //chirp the relays
-    // digitalWrite(17, HIGH);
+    digitalWrite(17, LOW);
     for(int i = 0; i < 12; i++) {
         sineBank[i].frequency(octaveF10[i] * (AUDIO_SAMPLE_RATE_EXACT / sampleRate));
         sineBank[i].amplitude(0.1f);
@@ -189,6 +197,22 @@ void setup() {
 
 
 void loop() {
+    // printer.update() ;
+    // Serial.println(analogRead(8)); (
+    //std::string s( buffer.data, buffer.size))
+    //Serial.print(queue.readBuffer()); 
+    //queue.printBuffer(); 
+    
+    memcpy(destination, queue.readBuffer(), 2);
+    Serial.println(*destination); 
+    // Serial.println("DESTINATION");
+    // Serial.println(destination);
+
+
+    // Serial.println("RMS LEFT");
+    //Serial.println(rms_L.read()); 
+    // Serial.println("RMS RIGHT");
+    // Serial.println(rms_R.read()); 
     if(performanceStatsClock > 500) {
         printPerformanceData();
         performanceStatsClock = 0;
