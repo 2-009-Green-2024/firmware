@@ -36,7 +36,13 @@ If you would like to add a sound file corresponding to messages that the BC tran
     **NOTE:** make sure the .wav files are recorded at/exported with a sample rate of 44.1 kHz. If you get an error about the sampling rate, you can drop your `.wav` file into **Audacity** (https://www.audacityteam.org) and export it with the proper sampling rate
 3. Go into your terminal and type `chmod 755 wav2sketch`. This lets you execute the file from terminal. 
 4. To run the file, type `./wav2sketch` and press enter. You should now see files of the format `AudioSample-SampleName` ending in `.cpp` and `.h` respectively. 
-5. Go into the `.h` file and add the contents of your `.cpp` file. Only add the super long `const unsigned int` variable
+
+**If you're on windows:**
+This page is marked as obsolete, but it has instructions on how to use `wav2sketch` that may still be useful. I'm on mac so I'm not sure how updated they are: https://www.pjrc.com/teensy/td_libs_AudioPlayMemory.html
+
+**Finally,**
+
+Go into the `.h` file and add the contents of your `.cpp` file. Only add the super long `const unsigned int` variable
 
 ```
 #ifndef SAMPLENAME_H
@@ -46,5 +52,5 @@ If you would like to add a sound file corresponding to messages that the BC tran
 
 #endif 
 ```
-6. Now, you can play your sound file through the teensy following the example of how we use `playMem` inside of `UltrasonicHearing.ino`.
+Now, you can play your sound file through the teensy following the example of how we use `playMem` inside of `UltrasonicHearing.ino`.
 
