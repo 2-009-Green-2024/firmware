@@ -39,10 +39,9 @@
 #include "AudioSampleLow_o2.h"
 
 // Import other device libraries
-#include "Adafruit_LC709203F.h" //Battery monitor
-
-
-
+#include "Adafruit_LC709203F.h" // Battery monitor
+#include <Adafruit_MCP23X17.h> // IO expander
+#include <Adafruit_NeoPixel.h> // LEDs
 
 /************ MESSAGE PACKETS */
 union UnderwaterMessage {
@@ -62,12 +61,37 @@ uint8_t transmitMessagePointer = 0;
 UnderwaterMessage receiveMessageQueue[MESSAGE_QUEUE_LEN];
 uint8_t receiveMessagePointer = 0;
 
-/********* */
-
-
 /******* ADDITIONAL DEVICE SETUP */
 
+// IO expander, buttons, LEDs set up
+#define BUTTON_PIN1 0
+#define BUTTON_PIN2 1
+#define BUTTON_PIN3 2
+#define BUTTON_PIN4 3
+#define BUTTON_PIN5 4#define BUTTON_PIN6 5
+#define BUTTON_PIN7 6
 
+// Pin connected to neopixels strip
+#define LED_PIN  14
+#define LED_COUNT 12
+
+// Declare NeoPixel strip object:
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGBW + NEO_KHZ800);
+
+uint32_t magenta = strip.Color(255, 0, 255, 0);
+uint32_t greenishwhite = strip.Color(0, 64, 0, 64); // r g b w
+uint32_t bluishwhite = strip.Color(64, 0, 0, 64);
+
+Adafruit_MCP23X17 mcp;
+
+uint8_t row_pins[4] = {BUTTON_PIN2, BUTTON_PIN7, BUTTON_PIN6, BUTTON_PIN4};
+uint8_t col_pins[3] = {BUTTON_PIN3, BUTTON_PIN1, BUTTON_PIN5};
+
+char keypad_array[4][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 0, 11}};
+static const char *message_array[4][3] = {{"SOS", "GOING UP", "GOING DOWN"}, {"LOW OXYGEN", "CHECK-IN", "COME LOOK"}, {"no msg", "no msg", "no msg"}, {"no msg", "no msg", "no msg"}};
+// replace message array with audio files
+
+// amplifier set ups
 
 const int micInput = AUDIO_INPUT_MIC;
 //const int micInput = AUDIO_INPUT_LINEIN;
@@ -176,13 +200,42 @@ void setup() {
     If anything fails: display red on LED strip 
     */
 
-   // Get LED strip up and running
+    // Get LEDs up and running
+    strip.begin();
+    strip.show(); // Initialize all pixels to 'off'
+    strip.setBrightness(32);
 
-   // Get battery monitor up and running
-   Wire.setClock
+    // LEDs: show that we are alive
+    strip.fill(bluishwhite, 0, 8); // light up entire strip
+    strip.show();
+    // keep strip on only for 3 seconds, then continue with rest of installation, CHANGE LATER!
+    // change the delay to while
+    delay(3000); 
+    strip.clear();
+
+    // Get IO expander up and running
+    if (!mcp.begin_I2C()) {
+        Serial.println("Error: I2C connection with IO expander.");
+        // while(1);
+        initializationError(1);
+    }
+
+    // Get buttons (keypad right now) up and running    
+    for (int r = 0; r < 4; r++) {
+        mcp.pinMode(row_pins[r], OUTPUT);
+        mcp.digitalWrite(row_pins[r], HIGH);
+        }
+    for (int c = 0; c < 3; c++) {
+        mcp.pinMode(col_pins[c], INPUT_PULLUP);
+        }
+    // Serial.println("Begin loop to check what buttons are pressed.");
 
 
+    // Get battery monitor up and running
+    Wire.setClock(100000);
+    
 
+    // Get audio shield up and running
     audioShield.enable();
     audioShield.inputSelect(micInput);
     audioShield.micGain(60);    //0-63
@@ -230,6 +283,25 @@ void loop() {
     // Serial.println("DESTINATION");
     // Serial.println(destination);
 
+    strip.clear(); // Set all pixel colors to 'off'
+
+    for (int r = 0; r < 4; r++) {
+        mcp.digitalWrite(row_pins[r], LOW);
+        delay(5);
+        for (int c = 0; c < 3; c++) {
+            if (mcp.digitalRead(col_pins[c]) == LOW) {
+                Serial.println(keypad_array[r][c]); // returns button pressed
+                Serial.println(message_array[r][c]); // returns message pressed
+                // replace 'message' to serial monitor with transmission of corresponding audio file
+                // i.e. add to queue to then transmit !!
+                // TO DO (evan and ottavia)
+                strip.fill(magenta, 0, keypad_array[r][c]);
+                strip.show();
+            }
+        }
+        mcp.digitalWrite(row_pins[r], HIGH);
+        delay(5);
+        }
 
     // Serial.println("RMS LEFT");
     //Serial.println(rms_L.read()); 
@@ -273,6 +345,17 @@ void loop() {
 
     if (wavWriter.isWriting())
         wavWriter.update();
+}
+
+// TODO otti moment
+void initializationError(int error) {
+    // passed in int error represents number of LEDs in strip that we want to light up
+    // for initialization, using greenishwhite (whereas showing life is bluishwhite)
+    
+    strip.fill(greenishwhite, 0, error); // error = number of tiles lit up
+    strip.show();
+
+    while(1); // how long to keep on for?
 }
 
 

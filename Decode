@@ -1,0 +1,6 @@
+UnderwaterMessage decode(int* received) {
+    // 16 bits long
+    // First 8 bits - message
+    // Last 8 bits - ID
+}
+
