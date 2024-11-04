@@ -268,8 +268,25 @@ void setup() {
     Serial.println("Done initializing! Starting now!");
     // tone(14, 5000);
     playMem.play(AudioSampleLow_o2);
+
+    //Battery check setup
+    if (!lc.begin()) {
+    Serial.println(F("Couldnt find Adafruit LC709203F?\nMake sure a battery is plugged in!"));
+    while (1) delay(10);
+    }
+    Serial.println(F("Found LC709203F"));
+    Serial.print("Version: 0x"); Serial.println(lc.getICversion(), HEX);
+
+    lc.setThermistorB(3950);
+    Serial.print("Thermistor B = "); Serial.println(lc.getThermistorB());
+
+    lc.setPackSize(LC709203F_APA_500MAH);
+
+    lc.setAlarmVoltage(3.8);
 }
 
+static long time = 0;
+//init time for non-blocking check
 
 void loop() {
     // printer.update() ;
@@ -345,6 +362,13 @@ void loop() {
 
     if (wavWriter.isWriting())
         wavWriter.update();
+
+    if (millis() - time > 2000){
+        printBatteryData();
+
+    }
+    //printing battery status every 2 seconds, displaying on neopixel
+    
 }
 
 // TODO otti moment
@@ -376,4 +400,36 @@ void printPerformanceData() {
     Serial.print(",");
     Serial.print(AudioMemoryUsageMax()); // maximum number of audio blocks ever in use
     Serial.println();
+}
+
+
+//colors
+uint32_t green = strip.Color(0, 255, 0);
+uint32_t red = strip.Color(255, 0, 0);
+uint32_t orange = strip.Color(255, 150, 0);
+uint32_t yellow = strip.Color(255, 255, 0);
+void printBatteryData(){
+    time = millis()
+    Serial.print("Batt_Voltage:");
+    Serial.print(lc.cellVoltage(), 3);
+    Serial.print("\t");
+    Serial.print("Batt_Percent:");
+    Serial.print(lc.cellPercent(), 1);
+    Serial.print("\t");
+    Serial.print("Batt_Temp:");
+    Serial.println(lc.getCellTemperature(), 1);
+
+    if (lc.cellPercent() > 80){
+        strip.fill(green, 0, 7);
+    }
+    else if (lc.cellPercent() > 60){
+        strip.fill(yellow, 0, 5);
+    }
+    else if (lc.cellPercent() > 20){
+        strip.fill(orange, 0, 3)
+    }
+    else{
+        strip.fill(red, 0, 1)
+    }
+    strip.show()
 }
