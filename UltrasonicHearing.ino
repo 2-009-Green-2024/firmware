@@ -37,6 +37,13 @@
 
 // Import audio samples
 #include "AudioSampleLow_o2.h"
+#include "AudioSampleSos.h"
+#include "AudioSampleGoing_up.h"
+#include "AudioSampleGoing_down.h"
+#include "AudioSampleLow_oxygen.h"
+#include "AudioSampleCheck_in.h"
+#include "AudioSampleCome_look.h"
+#include "AudioSampleNo_msg.h"
 
 // Import other device libraries
 #include "Adafruit_LC709203F.h" // Battery monitor
@@ -68,7 +75,8 @@ uint8_t receiveMessagePointer = 0;
 #define BUTTON_PIN2 1
 #define BUTTON_PIN3 2
 #define BUTTON_PIN4 3
-#define BUTTON_PIN5 4#define BUTTON_PIN6 5
+#define BUTTON_PIN5 4
+#define BUTTON_PIN6 5
 #define BUTTON_PIN7 6
 
 // Pin connected to neopixels strip
@@ -90,6 +98,12 @@ uint8_t col_pins[3] = {BUTTON_PIN3, BUTTON_PIN1, BUTTON_PIN5};
 char keypad_array[4][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 0, 11}};
 static const char *message_array[4][3] = {{"SOS", "GOING UP", "GOING DOWN"}, {"LOW OXYGEN", "CHECK-IN", "COME LOOK"}, {"no msg", "no msg", "no msg"}, {"no msg", "no msg", "no msg"}};
 // replace message array with audio files
+
+const unsigned int *audio_messages_array[4][3] = {
+  {AudioSampleSos, AudioSampleGoing_up, AudioSampleGoing_down},
+  {AudioSampleLow_oxygen, AudioSampleCheck_in, AudioSampleCome_look},
+  {AudioSampleNo_msg, AudioSampleNo_msg, AudioSampleNo_msg}
+};
 
 // amplifier set ups
 
@@ -208,15 +222,14 @@ void setup() {
     // LEDs: show that we are alive
     strip.fill(bluishwhite, 0, 8); // light up entire strip
     strip.show();
-    // keep strip on only for 3 seconds, then continue with rest of installation, CHANGE LATER!
-    // change the delay to while
+    // keep strip on for 3 seconds, then continue with rest of installation
+    // change the delay to while?
     delay(3000); 
     strip.clear();
 
     // Get IO expander up and running
     if (!mcp.begin_I2C()) {
         Serial.println("Error: I2C connection with IO expander.");
-        // while(1);
         initializationError(1);
     }
 
@@ -233,6 +246,7 @@ void setup() {
 
     // Get battery monitor up and running
     Wire.setClock(100000);
+    // initializationError(2);
     
 
     // Get audio shield up and running
@@ -240,6 +254,7 @@ void setup() {
     audioShield.inputSelect(micInput);
     audioShield.micGain(60);    //0-63
     audioShield.volume(1);    //0-1
+    // initializationError(3);
 
     queue.begin(); 
     setI2SFreq(sampleRate);
@@ -309,10 +324,13 @@ void loop() {
             if (mcp.digitalRead(col_pins[c]) == LOW) {
                 Serial.println(keypad_array[r][c]); // returns button pressed
                 Serial.println(message_array[r][c]); // returns message pressed
-                // replace 'message' to serial monitor with transmission of corresponding audio file
-                // i.e. add to queue to then transmit !!
-                // TO DO (evan and ottavia)
-                strip.fill(magenta, 0, keypad_array[r][c]);
+
+                playMem.play(audio_messages_array[r][c]); // plays message pressed
+                // INSTEAD add to queue to then transmit !!
+
+                // ALSO add confirmation of message pressed back to bone conduction (not only transmission)
+
+                strip.fill(magenta, 0, keypad_array[r][c]); // lights up number of grids according to button pressed
                 strip.show();
             }
         }
@@ -380,6 +398,7 @@ void initializationError(int error) {
     strip.show();
 
     while(1); // how long to keep on for?
+    strip.clear();
 }
 
 
