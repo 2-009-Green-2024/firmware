@@ -68,7 +68,8 @@ uint8_t receiveMessagePointer = 0;
 #define BUTTON_PIN2 1
 #define BUTTON_PIN3 2
 #define BUTTON_PIN4 3
-#define BUTTON_PIN5 4#define BUTTON_PIN6 5
+#define BUTTON_PIN5 4
+#define BUTTON_PIN6 5
 #define BUTTON_PIN7 6
 
 // Pin connected to neopixels strip
@@ -89,7 +90,7 @@ uint8_t col_pins[3] = {BUTTON_PIN3, BUTTON_PIN1, BUTTON_PIN5};
 
 char keypad_array[4][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 0, 11}};
 static const char *message_array[4][3] = {{"SOS", "GOING UP", "GOING DOWN"}, {"LOW OXYGEN", "CHECK-IN", "COME LOOK"}, {"no msg", "no msg", "no msg"}, {"no msg", "no msg", "no msg"}};
-// replace message array with audio files
+// replace message array with audio files (NOTE: evan & OT - we need to go through and make these of type UnderwaterMessage or do some conversion)
 
 // amplifier set ups
 
@@ -120,15 +121,16 @@ AudioSynthWaveform       waveform1;        //xy=171,84
 AudioSynthWaveform       waveform2;        //xy=178,148
 AudioRecordQueue          queue;
 WavFileWriter            wavWriter(queue);
-AudioPlayMemory playMem; 
-
-AudioAnalyzeRMS rms_L;
-AudioAnalyzeRMS    rms_R;
+AudioPlayMemory           playMem; 
+AudioAnalyzeToneDetect    findTone;
+AudioAnalyzeRMS           rms_L;
+AudioAnalyzeRMS           rms_R;
 
 int current_waveform=0;
-//AudioConnection patchCord1(playMem, 0, audioOutput, 0); // thru hydro - 1, thru bone conduction - 0 for audioOut
+AudioConnection bc_transducer(playMem, 0, audioOutput, 0); // thru hydro - 1, thru bone conduction - 0 for audioOut
 // AudioConnection patchCord1(waveform1, 0, audioOutput, 1);
-AudioConnection patchCord1(audioInput, 0, printer, 0); //for output: hydro - 0, bone conduction - 1    
+AudioConnection hydro_listener(audioInput, 0, findTone, 0); //for output: hydro - 0, bone conduction - 1    
+AudioConnection hydro_listener1(audioInput, queue); 
 // AudioConnection patchCord1(audioInput, 0, rms_L, 0); //for output: hydro - 0, bone conduction - 1    
 // AudioConnection patchCord(audioInput, 0, rms_R, 1); //for output: hydro - 0, bone conduction - 1    
 int dOUT;
@@ -181,6 +183,12 @@ AudioConnection        fftToWav(fft, 0, queue, 0);
 
 void printPerformanceData();
 
+enum OperatingMode { 
+    RECEIVE,
+    TRANSMIT,
+    ERROR
+};
+enum OperatingMode mode;
 
 void setup() {
     delay(500);
@@ -246,8 +254,8 @@ void setup() {
     Serial.printf("Running at samplerate: %d\n", sampleRate);
 
     fft.setHighPassCutoff(20000.f);
-    // pinMode(17, OUTPUT); //chirp the relays
-    digitalWrite(17, LOW);
+    pinMode(17, OUTPUT); //set relay pin as output
+
 
     // Confirgure both to use "myWaveform" for WAVEFORM_ARBITRARY
     // waveform1.arbitraryWaveform(myWaveform, 172.0);
@@ -267,7 +275,7 @@ void setup() {
 
     Serial.println("Done initializing! Starting now!");
     // tone(14, 5000);
-    playMem.play(AudioSampleLow_o2);
+    // playMem.play(AudioSampleLow_o2);
 
     //Battery check setup
     if (!lc.begin()) {
@@ -283,6 +291,8 @@ void setup() {
     lc.setPackSize(LC709203F_APA_500MAH);
 
     lc.setAlarmVoltage(3.8);
+
+    mode = RECEIVE; // set it to receiving mode
 }
 
 static long time = 0;
@@ -307,8 +317,11 @@ void loop() {
         delay(5);
         for (int c = 0; c < 3; c++) {
             if (mcp.digitalRead(col_pins[c]) == LOW) {
+                mode = TRANSMIT;
                 Serial.println(keypad_array[r][c]); // returns button pressed
                 Serial.println(message_array[r][c]); // returns message pressed
+                transmitMessageQueue[transmitMessagePointer] = message_array[r][c];// add msg to queue 
+                transmitMessagePointer++; //increment ptr by one 
                 // replace 'message' to serial monitor with transmission of corresponding audio file
                 // i.e. add to queue to then transmit !!
                 // TO DO (evan and ottavia)
@@ -319,7 +332,16 @@ void loop() {
         mcp.digitalWrite(row_pins[r], HIGH);
         delay(5);
         }
-
+    switch(mode) {
+        case RECEIVE:
+            update_relays(mode);
+            receive();
+            break;
+        case TRANSMIT:
+            update_relays(mode);
+            transmit();
+            break;
+    }
     // Serial.println("RMS LEFT");
     //Serial.println(rms_L.read()); 
     // Serial.println("RMS RIGHT");
@@ -432,4 +454,89 @@ void printBatteryData(){
         strip.fill(red, 0, 1)
     }
     strip.show()
+}
+
+void update_relays(OperatingMode newMode) {
+    if (newMode == RECEIVE); {
+        digitalWrite(17, LOW); // make relays go to listen mode
+    }
+    if (newMode == TRANSMIT) {
+        digitalWrite(17, HIGH); // make relays go into transmit mode
+    }
+}
+
+void receive() {
+    if (findTone(start_freq)) {
+        Serial.println("FOUND START FREQUENCY");
+    } // start recording upon receipt of start frequency
+    int[32] inData; 
+    for (i=0; i < 32; i++) {
+        if (findTone(low_freq)) {
+            inData[i] = 0;
+        }
+        else if (findTone(high_freq)) {
+            inData[i] = 1;
+        }
+        if (findtone(end_freq)) {
+            Serial.println("FOUND END OF MESSAGE"); 
+            break;
+        }
+    }
+    /* TODO: Also implement version that reads data from the buffer then decodes it */
+    // queue.clear()
+    // queue.readBuffer()
+    
+    // Now process the signal
+    decoded_msg = decode_msg(inData);
+    mapped_msg = message_map[decoded_msg];
+
+    receiveMessageQueue[mapped_msg]; // add received message to the queue 
+    receiveMessagePointer++;
+
+    playMem(receiveMessageQueue[receiveMessagePointer]);
+    receiveMessagePointer--; // after playing through BC transducer decrement position in queue by 1
+
+    check_pointers(&receiveMessagePointer);
+
+
+}
+
+void play_data(int[32] inData); {
+    // frequencies of the message in kHz;
+    OUT_PIN = 14; 
+    tone_duration = 500; // play each tone for 500ms 
+    
+    tone(OUT_PIN, start_freq, tone_duration); 
+
+    for (int i=0, i < 32, i++) {
+        if (inData[i] == 0) {
+            tone(OUT_PIN, low_freq, tone_duration);
+        }
+        else if (indata[i] == 1) {
+            tone(OUT_PIN, high_freq, tone_duration);
+        }
+    }
+
+    tone(OUT_PIN, end_freq, tone_duration); //wrap it up with the end frequency
+}
+void transmit() {
+    /* Plays a single message through the hydrophone, then switches back to receiving mode */
+    int[32] outputData; // init 32 bit array of ints
+    UnderwaterMessage msg = transmitMessageQueue[transmitMessagePointer]; // message is current item in the queue
+    msg.id = 3; // arbitrary diver ID 
+    encode(msg, &outputData);  // outputData now has message inside of it
+    play_data(outputData); //play that message 
+
+    mode = RECEIVE; // switch back to receiving mode 
+    transmitMessagePointer--; // decrement pointer by 1 to get next newest message in queue 
+    return; 
+}
+
+void check_pointers(uint8_t &pointer) {
+    if (pointer > 0) { // wrap back around if overshoot queue len
+        pointer = pointer % MESSAGE_QUEUE_LEN;
+    }
+    else if (pointer < 0) {
+        pointer = 0; // floor pointer index at 0
+    }
 }
