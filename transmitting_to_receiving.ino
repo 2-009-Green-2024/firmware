@@ -52,7 +52,7 @@ void loop() {
     tone(14, curTone); 
 
     if (curTone == 5000) {
-      curTone = 15000;
+      curTone = 30000;
     } else {
       curTone = 5000;
     }
