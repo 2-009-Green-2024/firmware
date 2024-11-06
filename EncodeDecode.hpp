@@ -14,8 +14,8 @@ int sum(int arr[], int size) {
 // Then, we will loop through this array and send tones based on it
 // Example use:
 // int[32] outputData;
-// UnderwaterMessage msg;
-// msg.id = 3;
+UnderwaterMessage msg;
+msg.id = 3;
 // encode(msg, &outputData);
 // Now, outputData has our encoded message in it
 void encode(UnderwaterMessage inMessage, int *outputData) {
@@ -23,7 +23,7 @@ void encode(UnderwaterMessage inMessage, int *outputData) {
 
     uint16_t ORIGINAL_MESSAGE = inMessage.data;
     
-    int size = sizeof(ORIGINAL_MESSAGE) / sizeof(ORIGINAL_MESSAGE[0]);
+    int size = sizeof(ORIGINAL_MESSAGE);
     int ENCODED_MESSAGE[2][size];
     
     // Initialize ENCODED_MESSAGE with zeros
