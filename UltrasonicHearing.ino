@@ -25,6 +25,10 @@
 #include <elapsedMillis.h>
 #include <cmath>
 
+//Import encoding/decoding libraries
+#include <iostream>
+#include <climits>
+
 //Import audio-related libraries
 #include <Audio.h>
 #include <Wire.h>
