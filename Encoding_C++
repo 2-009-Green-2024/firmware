@@ -1,3 +1,4 @@
+#include <iostream>
 // Placeholder sum function (to be defined properly as per your logic)
 int sum(int arr[], int size) {
     int s = 0;
@@ -7,23 +8,32 @@ int sum(int arr[], int size) {
     return s;
 }
 
-
 // Input is UnderwaterMessage
 // Which has fields id, msg, data (id + msg concatenated)
 // Ouput is (for 16-bit message), a 32-bit array of 1s and 0s
 // Then, we will loop through this array and send tones based on it
 // Example use:
-// int[32] outputData;
-// UnderwaterMessage msg;
-// msg.id = 3;
+int[32] outputData;
+UnderwaterMessage msg;
+msg.id = 3;
 // encode(msg, &outputData);
 // Now, outputData has our encoded message in it
+// Placeholder sum function (to be defined properly as per your logic)
+
+
 void encode(UnderwaterMessage inMessage, int *outputData) {
     // ORIGINAL_MESSAGE.data is your data array
-
+    int sum(int arr[], int size) {
+        int s = 0;
+        for (int i = 0; i < size; ++i) {
+            s += arr[i];
+        }
+        return s;
+        }
+    
     uint16_t ORIGINAL_MESSAGE = inMessage.data;
     
-    int size = sizeof(ORIGINAL_MESSAGE) / sizeof(ORIGINAL_MESSAGE[0]);
+    int size = sizeof(ORIGINAL_MESSAGE);
     int ENCODED_MESSAGE[2][size];
     
     // Initialize ENCODED_MESSAGE with zeros
@@ -36,8 +46,10 @@ void encode(UnderwaterMessage inMessage, int *outputData) {
     int generator[2] = {0, 0};
 
     for (int i = 0; i < size; ++i) {
-        int sum_7 = ORIGINAL_MESSAGE[i] + generator[0] + generator[1];
-        int sum_5 = ORIGINAL_MESSAGE[i] + generator[1];
+        int bit = getBit(ORIGINAL_MESSAGE, i);
+
+        int sum_7 = bit + generator[0] + generator[1];
+        int sum_5 = bit + generator[1];
 
         // Set encoded bytes in the message
         ENCODED_MESSAGE[0][i] = sum_7 % 2;
@@ -45,19 +57,9 @@ void encode(UnderwaterMessage inMessage, int *outputData) {
 
         //Propagate generator to next step
         generator[1] = generator[0];
-        generator[0] = ORIGINAL_MESSAGE[i];
+        generator[0] = bit;
     }
-
-    // Print ENCODED_MESSAGE to verify
-    Serial.print("ENCODED_MESSAGE:\n");
-    for (int i = 0; i < 2; ++i) {
-      for (int j = 0; j < size; ++j) {
-          Serial.print(ENCODED_MESSAGE[i][j]);
-          Serial.print(" ");
-      }
-      Serial.print("\n");
-    }
-        
+    
     int SENT_MESSAGE[size*2];
     int k = 0;
     for (int j = 0; j < size; ++j) {
@@ -65,10 +67,11 @@ void encode(UnderwaterMessage inMessage, int *outputData) {
             SENT_MESSAGE[k] = ENCODED_MESSAGE[i][j];
             k++;
     }}
-
+    
+    for (int i = 0; i < size * 2; ++i) {
+        outputData[i] = SENT_MESSAGE[i];
     return 
   }
-   
 
 UnderwaterMessage decode(int* received) {
     // 16 bits long
