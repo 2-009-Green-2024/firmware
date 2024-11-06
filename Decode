@@ -1,105 +1,98 @@
-UnderwaterMessage decode(int* received) {
-#include "Arduino.h"
-
 #define MESSAGE_SIZE 16 // Length of the original message
 #define NUM_STATES 4   // Number of possible states (00, 01, 10, 11)
 #define MAX_METRIC 1000  // Large number for initialization
 
-// Encoding matrix to map state transitions (rows: state, columns: input bit)
-int transition[NUM_STATES][2] = {
-    {0, 2},  // State 00: transitions to 00 (input 0) and 10 (input 1)
-    {0, 2},  // State 01: transitions to 00 (input 0) and 10 (input 1)
-    {1, 3},  // State 10: transitions to 01 (input 0) and 11 (input 1)
-    {1, 3}   // State 11: transitions to 01 (input 0) and 11 (input 1)
-};
-
-// Expected encoded outputs for each state and input
-int output[NUM_STATES][2][2] = {
-    {{0, 0}, {1, 1}},  // State 00
-    {{1, 1}, {0, 0}},  // State 01
-    {{1, 0}, {0, 1}},  // State 10
-    {{0, 1}, {1, 0}}   // State 11
-};
-
-// Placeholder for the final decoded message
-int decodedMessage[MESSAGE_SIZE] = {0};
-
-// Function to calculate Hamming distance
-int hammingDistance(int received[], int expected[]) {
-    int dist = 0;
-    for (int i = 0; i < 2; i++) {
-        if (received[i] != expected[i]) {
-            dist++;
-        }
-    }
-    return dist;
-}
-
-// Viterbi decoding function
-void viterbiDecode(int sentMessage[], int decodedMessage[], int messageSize) {
-    int pathMetric[NUM_STATES] = {MAX_METRIC, MAX_METRIC, MAX_METRIC, MAX_METRIC};
-    int newMetric[NUM_STATES];
-    int prevState[NUM_STATES][MESSAGE_SIZE] = {{0}};  // Track the input that leads to each state at each step
-    int survivorPath[NUM_STATES][MESSAGE_SIZE];       // Tracks the best path to each state at each step
-
-    // Initialize the start of the path at state 00
-    pathMetric[0] = 0;
-
-    // Forward pass to calculate path metrics
-    for (int t = 0; t < messageSize; ++t) {
-        int received[2] = {sentMessage[2 * t], sentMessage[2 * t + 1]};
-
-        // Reset newMetric for the current timestep
-        for (int state = 0; state < NUM_STATES; ++state) {
-            newMetric[state] = MAX_METRIC;
-        }
-
-        // Calculate path metrics for each state and input bit
-        for (int state = 0; state < NUM_STATES; ++state) {
-            for (int inputBit = 0; inputBit < 2; ++inputBit) {
-                int nextState = transition[state][inputBit];
-                int expected[2] = {output[state][inputBit][0], output[state][inputBit][1]};
-                int dist = hammingDistance(received, expected);
-
-                int newCost = pathMetric[state] + dist;
-                if (newCost < newMetric[nextState]) {
-                    newMetric[nextState] = newCost;
-                    survivorPath[nextState][t] = state;  // Track the state that led to the minimum metric
-                    prevState[nextState][t] = inputBit;  // Track the input bit for decoding
-                }
+void decode(outputData, int *DECODED_MESSAGE, int MessageSize) {
+    // Encoding matrix to map state transitions (rows: state, columns: input bit)
+    int transition[NUM_STATES][2] = {
+        {0, 2},  // State 00: transitions to 00 (input 0) and 10 (input 1)
+        {0, 2},  // State 01: transitions to 00 (input 0) and 10 (input 1)
+        {1, 3},  // State 10: transitions to 01 (input 0) and 11 (input 1)
+        {1, 3}   // State 11: transitions to 01 (input 0) and 11 (input 1)
+    };
+    
+    // Expected encoded outputs for each state and input
+    int output[NUM_STATES][2][2] = {
+        {{0, 0}, {1, 1}},  // State 00
+        {{1, 1}, {0, 0}},  // State 01
+        {{1, 0}, {0, 1}},  // State 10
+        {{0, 1}, {1, 0}}   // State 11
+    };
+    
+    // Placeholder for the final decoded message
+    int decodedMessage[MESSAGE_SIZE] = {0};
+    
+    // Function to calculate Hamming distance
+    int hammingDistance(int received[], int expected[]) {
+        int dist = 0;
+        for (int i = 0; i < 2; i++) {
+            if (received[i] != expected[i]) {
+                dist++;
             }
         }
-
-        // Update pathMetric to the newMetric values
+        return dist;
+    }
+        int pathMetric[NUM_STATES] = {MAX_METRIC, MAX_METRIC, MAX_METRIC, MAX_METRIC};
+        int newMetric[NUM_STATES];
+        int prevState[NUM_STATES][MESSAGE_SIZE] = {{0}};  // Track the input that leads to each state at each step
+        int survivorPath[NUM_STATES][MESSAGE_SIZE];       // Tracks the best path to each state at each step
+    
+        // Initialize the start of the path at state 00
+        pathMetric[0] = 0;
+    
+        // Forward pass to calculate path metrics
+        for (int t = 0; t < messageSize; ++t) {
+            int received[2] = {sentMessage[2 * t], sentMessage[2 * t + 1]};
+    
+            // Reset newMetric for the current timestep
+            for (int state = 0; state < NUM_STATES; ++state) {
+                newMetric[state] = MAX_METRIC;
+            }
+    
+            // Calculate path metrics for each state and input bit
+            for (int state = 0; state < NUM_STATES; ++state) {
+                for (int inputBit = 0; inputBit < 2; ++inputBit) {
+                    int nextState = transition[state][inputBit];
+                    int expected[2] = {output[state][inputBit][0], output[state][inputBit][1]};
+                    int dist = hammingDistance(received, expected);
+    
+                    int newCost = pathMetric[state] + dist;
+                    if (newCost < newMetric[nextState]) {
+                        newMetric[nextState] = newCost;
+                        survivorPath[nextState][t] = state;  // Track the state that led to the minimum metric
+                        prevState[nextState][t] = inputBit;  // Track the input bit for decoding
+                    }
+                }
+            }
+    
+            // Update pathMetric to the newMetric values
+            for (int i = 0; i < NUM_STATES; ++i) {
+                pathMetric[i] = newMetric[i];
+            }
+        }
+    
+        // Backward pass for traceback to determine the decoded message
+        // Find the state with the minimum path metric at the end
+        int minMetric = MAX_METRIC;
+        int currentState = 0;
         for (int i = 0; i < NUM_STATES; ++i) {
-            pathMetric[i] = newMetric[i];
+            if (pathMetric[i] < minMetric) {
+                minMetric = pathMetric[i];
+                currentState = i;
+            }
         }
-    }
-
-    // Backward pass for traceback to determine the decoded message
-    // Find the state with the minimum path metric at the end
-    int minMetric = MAX_METRIC;
-    int currentState = 0;
-    for (int i = 0; i < NUM_STATES; ++i) {
-        if (pathMetric[i] < minMetric) {
-            minMetric = pathMetric[i];
-            currentState = i;
-        }
-    }
-
+    
     // Traceback to reconstruct the original message bits
     for (int t = messageSize - 1; t >= 0; --t) {
         decodedMessage[t] = prevState[currentState][t];  // Retrieve the input bit that led to the current state
         currentState = survivorPath[currentState][t];    // Move to the previous state in the path
-    }
+        }
 }
 
 void setup() {
-    Serial.begin(9600);
-
+    
     int sentMessage1[MESSAGE_SIZE * 2] = {0, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1}; // Test input 1
-    int sentMessage2[MESSAGE_SIZE * 2] = {0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0}; // Test input 2
-
+    
     viterbiDecode(sentMessage1, decodedMessage, MESSAGE_SIZE);
     Serial.print("Decoded Message 1: ");
     for (int i = 0; i < MESSAGE_SIZE; i++) {
@@ -107,7 +100,7 @@ void setup() {
         Serial.print(" ");
     }
     Serial.println();
-
+    
     viterbiDecode(sentMessage2, decodedMessage, MESSAGE_SIZE);
     Serial.print("Decoded Message 2: ");
     for (int i = 0; i < MESSAGE_SIZE; i++) {
@@ -116,11 +109,3 @@ void setup() {
     }
     Serial.println();
 }
-
-void loop() {}
-
-    // 16 bits long
-    // First 8 bits - message
-    // Last 8 bits - ID
-}
-
