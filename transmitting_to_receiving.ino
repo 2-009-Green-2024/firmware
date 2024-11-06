@@ -28,7 +28,7 @@ void setup() {
   pinMode(14, OUTPUT); 
   AudioMemory(50);
   // filter1.frequency(30); // filter out DC & extremely low frequencies
-  biquad1.setBandpass(0,16000,15);//Filter to only freq between 950-1050
+  biquad1.setBandpass(0,30000,30);//Filter to only freq between 29000-31000
   // for (int i=1; i< 3; i++) {
   //   biquad1.setBandpass(i, 16000, 0.7071);
   // }
