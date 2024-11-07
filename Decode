@@ -2,7 +2,11 @@
 #define NUM_STATES 4   // Number of possible states (00, 01, 10, 11)
 #define MAX_METRIC 1000  // Large number for initialization
 
-void decode(outputData, int *DECODED_MESSAGE, int MessageSize) {
+void decode(int outputData, int *DECODED_MESSAGE, int MessageSize) {
+    int MAX_METRIC = 1000; // Large number for initialization
+    int MESSAGE_SIZE = 16; // Length of the original message
+    int NUM_STATES = 4; // Number of possible states (00, 01, 10, 11)
+
     // Encoding matrix to map state transitions (rows: state, columns: input bit)
     int transition[NUM_STATES][2] = {
         {0, 2},  // State 00: transitions to 00 (input 0) and 10 (input 1)
@@ -20,7 +24,7 @@ void decode(outputData, int *DECODED_MESSAGE, int MessageSize) {
     };
     
     // Placeholder for the final decoded message
-    int decodedMessage[MESSAGE_SIZE] = {0};
+    int DECODED_MESSAGE[MESSAGE_SIZE] = {0};
     
     // Function to calculate Hamming distance
     int hammingDistance(int received[], int expected[]) {
@@ -84,7 +88,7 @@ void decode(outputData, int *DECODED_MESSAGE, int MessageSize) {
     
     // Traceback to reconstruct the original message bits
     for (int t = messageSize - 1; t >= 0; --t) {
-        decodedMessage[t] = prevState[currentState][t];  // Retrieve the input bit that led to the current state
+        DECODED_MESSAGE[t] = prevState[currentState][t];  // Retrieve the input bit that led to the current state
         currentState = survivorPath[currentState][t];    // Move to the previous state in the path
         }
 }
@@ -99,13 +103,5 @@ void setup() {
         Serial.print(decodedMessage[i]);
         Serial.print(" ");
     }
-    Serial.println();
-    
-    viterbiDecode(sentMessage2, decodedMessage, MESSAGE_SIZE);
-    Serial.print("Decoded Message 2: ");
-    for (int i = 0; i < MESSAGE_SIZE; i++) {
-        Serial.print(decodedMessage[i]);
-        Serial.print(" ");
-    }
-    Serial.println();
+    return
 }
