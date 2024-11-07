@@ -1,16 +1,14 @@
 int outputData[32];
 UnderwaterMessage msg;
 
+// Function to get bits from the array values of the message
+int getBit(uint16_t number, int i) {
+    return (number >> i) & 1;
+}
+
 void encode(UnderwaterMessage inMessage, int *outputData) {
     // ORIGINAL_MESSAGE.data is your data array
-    int sum(int arr[], int size) {
-        int s = 0;
-        for (int i = 0; i < size; ++i) {
-            s += arr[i];
-        }
-        return s;
-    }
-    
+
     uint16_t ORIGINAL_MESSAGE = inMessage.data;
     
     int size = 16;
@@ -51,10 +49,21 @@ void encode(UnderwaterMessage inMessage, int *outputData) {
     
     for (int i = 0; i < size * 2; ++i) {
         outputData[i] = SENT_MESSAGE[i];
-    return 
   }
 }
-void decode(int outputData, int *DECODED_MESSAGE) {
+
+// Function to calculate Hamming distance
+int hammingDistance(int received[], int expected[]) {
+    int dist = 0;
+    for (int i = 0; i < 2; i++) {
+        if (received[i] != expected[i]) {
+            dist++;
+        }
+    }
+    return dist;
+}
+
+void decode(int outputData[], int *DECODED_MESSAGE) {
     int MAX_METRIC = 1000; // Large number for initialization
     int MESSAGE_SIZE = 16; // Length of the original message
     int NUM_STATES = 4; // Number of possible states (00, 01, 10, 11)
@@ -74,17 +83,6 @@ void decode(int outputData, int *DECODED_MESSAGE) {
         {{1, 0}, {0, 1}},  // State 10
         {{0, 1}, {1, 0}}   // State 11
     };
-    
-    // Function to calculate Hamming distance
-    int hammingDistance(int received[], int expected[]) {
-        int dist = 0;
-        for (int i = 0; i < 2; i++) {
-            if (received[i] != expected[i]) {
-                dist++;
-            }
-        }
-        return dist;
-    }
         int pathMetric[NUM_STATES] = {MAX_METRIC, MAX_METRIC, MAX_METRIC, MAX_METRIC};
         int newMetric[NUM_STATES];
         int prevState[NUM_STATES][MESSAGE_SIZE] = {{0}};  // Track the input that leads to each state at each step
@@ -141,3 +139,5 @@ void decode(int outputData, int *DECODED_MESSAGE) {
         currentState = survivorPath[currentState][t];    // Move to the previous state in the path
         }
 }
+
+   // int DECODED_MESSAGE[MESSAGE_SIZE] = {0};
