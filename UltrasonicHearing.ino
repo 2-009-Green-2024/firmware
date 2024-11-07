@@ -142,6 +142,9 @@ AudioAnalyzeToneDetect    findTone;
 AudioAnalyzeRMS           rms_L;
 AudioAnalyzeRMS           rms_R;
 
+AudioAnalyzeRMS rms_L;
+AudioAnalyzeRMS  rms_R;
+
 int current_waveform=0;
 AudioConnection bc_transducer(playMem, 0, audioOutput, 0); // thru hydro - 1, thru bone conduction - 0 for audioOut
 // AudioConnection patchCord1(waveform1, 0, audioOutput, 1);
@@ -260,17 +263,20 @@ void setup() {
     // Get audio shield up and running
     audioShield.enable();
     audioShield.inputSelect(micInput);
-    audioShield.micGain(60);    //0-63
-    audioShield.volume(1);    //0-1
-    // initializationError(3);
+    audioShield.micGain(30);  //0-63
+    audioShield.volume(1);  //0-1
 
     queue.begin(); 
     setI2SFreq(sampleRate);
     Serial.printf("Running at samplerate: %d\n", sampleRate);
 
     fft.setHighPassCutoff(20000.f);
-    pinMode(17, OUTPUT); //set relay pin as output
-
+    // pinMode(17, OUTPUT); //chirp the relays
+    digitalWrite(17, LOW);
+    for(int i = 0; i < 12; i++) {
+        sineBank[i].frequency(octaveF10[i] * (AUDIO_SAMPLE_RATE_EXACT / sampleRate));
+        sineBank[i].amplitude(0.1f);
+    }
 
     // Confirgure both to use "myWaveform" for WAVEFORM_ARBITRARY
     // waveform1.arbitraryWaveform(myWaveform, 172.0);
